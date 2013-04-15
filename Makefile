@@ -1,22 +1,29 @@
-CFLAGS+=-Wall -g -DDEBUG
+CXXFLAGS+=-W -Wall
 LDFLAGS+= -lpthread -lcrypto
-EXEC=tmto
+GENERATOR=tmto
+TESTER=tester
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
 CC=g++
 
-all: $(EXEC)
+all: $(GENERATOR) $(TESTER)
 
-$(EXEC): $(OBJECTS)
+debug: CXXFLAGS+= -DDEBUG -g
+debug: $(GENERATOR) $(TESTER)
+
+$(GENERATOR): $(OBJECTS)
 	$(CC) -o $@ $(OBJECTS) $(LDFLAGS)
 
+$(TESTER): $(GENERATOR)
+
+
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CXXFLAGS) -c -o $@ $<
 
 .PHONY: clean mrproper
 
 clean:
-	@rm $(OBJECTS)
+	@rm -f $(OBJECTS)
 
 mrproper:
-	@rm $(EXEC)
+	@rm -f $(GENERATOR) $(TESTER)

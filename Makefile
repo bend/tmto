@@ -1,6 +1,6 @@
 CXXFLAGS+=-W -Wall -O3
 LDFLAGS+= -lpthread -lcrypto
-GENERATOR=tmto
+GENERATOR=generator
 TESTER=tester
 SOURCES_GEN=generator.cpp
 OBJECTS_GEN=$(SOURCES_GEN:.cpp=.o)

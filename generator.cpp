@@ -11,7 +11,7 @@
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  YOUR NAME (), 
+ *         Author:  Benoit Daccache
  *   Organization:  
  *
  * =====================================================================================
@@ -75,16 +75,16 @@ unsigned char* reduce(unsigned char *hash, int i){
     return newBuf;
 }
 
-unsigned char* chainage(unsigned char* value, int chainSize){
+unsigned char* chain(unsigned char* value, int chainSize){
     unsigned char* sha;
-    unsigned char* red = (unsigned char*)malloc(4);
+    unsigned char* red = new unsigned char[4]();
     memcpy(red, value, 4);
     int i = 0;
     while(i < chainSize) {
         sha = sha4(red);
-        free(red);
+        delete[] red;
         red = reduce(sha, i);
-        free(sha);
+        delete[] sha;
         ++i;
     }
     return red;
@@ -102,7 +102,7 @@ int main()
 {
     int input = 0;
 
-    int nbEntries = 1250000;
+    int nbEntries = 1000000;
     int chainLength = 2000;
 
     unsigned char value [4];
@@ -111,18 +111,22 @@ int main()
     value[1] = ((input >> 16) & 0xFF);
     value[0] = ((input >> 24) & 0xFF);
     int i = 0;
-    unsigned char* ep = value;
+    unsigned char* ep = new unsigned char[4]();
+    memcpy(ep, value, 4);
     FILE* tf = fopen("table.dat", "w");
     while(i<nbEntries){
         writeChar(tf, ep);
-        ep = chainage(ep, chainLength);
+        unsigned char* oldep = ep;
+        ep = chain(ep, chainLength);
+        delete[] oldep;
         writeChar(tf,ep);
-        if(i%100 == 0)
-            printf("%f \n",(i/(double)nbEntries)*100.0); 
+        if(i%100 == 0) {
+            printf("%f\n",(i/(double)nbEntries)*100.0); 
+        }
         ++i;
     }
+    delete[] ep;
     fclose(tf);
-
     return 0;
 }
 

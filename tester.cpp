@@ -52,7 +52,7 @@ unsigned char* reduce(unsigned char *hash, int i){
     return newBuf;
 }
 
-unsigned char*  intToChar(int input) {
+unsigned char* intToChar(int input){
     unsigned char *value = new unsigned char[4]();
 
     value[3] = ( input & (0xFF));
@@ -103,15 +103,16 @@ int loadTable(const char* path, int nbEntries, unsigned char* sp, unsigned char*
         ep[i+3] = fgetc(f);
         ++i;
     }
+    fclose(f);
     return 0;
 }
 
-int loadPass(const char* path, int nbEntries){
+unsigned char* loadPass(const char* path, int nbEntries){
     fstream fin;
     vector<string> pass;
     fin.open(path, ios::in);
     string word;
-    char* decoded = new char[nbEntries*20]();
+    unsigned char* decoded = new unsigned char[nbEntries*20]();
     if (fin.is_open()) {
         int i=0;
         while(i<nbEntries){
@@ -124,55 +125,54 @@ int loadPass(const char* path, int nbEntries){
         while(i<nbEntries){
             string s = pass[i].substr(0, 8);
             int num1 = (int)strtol(s.c_str(), NULL, 16);
-            char* d1 = intToChar(num1);
+            unsigned char* d1 = intToChar(num1);
             decoded[i*20] = d1[0];
-            decoded[i*20 + 1] = d1[0];
-            decoded[i*20 + 2] = d1[1];
-            decoded[i*20 + 3] = d1[2];
-            delete d1;
+            decoded[i*20 + 1] = d1[1];
+            decoded[i*20 + 2] = d1[2];
+            decoded[i*20 + 3] = d1[3];
+            delete[] d1;
             
-            string s = pass[i].substr(8, 8);
+            s = pass[i].substr(8, 8);
             int num2 = (int)strtol(s.c_str(), NULL, 16);
-            char* d2 = intToChar(num1);
+            unsigned char* d2 = intToChar(num2);
             decoded[i*20+4] = d2[0];
-            decoded[i*20 + 5] = d2[0];
-            decoded[i*20 + 6] = d2[1];
-            decoded[i*20 + 7] = d2[2];
-            delete d2;
+            decoded[i*20 + 5] = d2[1];
+            decoded[i*20 + 6] = d2[2];
+            decoded[i*20 + 7] = d2[3];
+            delete[] d2;
             
-            string s = pass[i].substr(16, 8);
+            s = pass[i].substr(16, 8);
             int num3 = (int)strtol(s.c_str(), NULL, 16);
-            char* d3 = intToChar(num1);
+            unsigned char* d3 = intToChar(num3);
             decoded[i*20+8] = d3[0];
-            decoded[i*20 + 9] = d3[0];
-            decoded[i*20 + 10] = d3[1];
-            decoded[i*20 + 11] = d3[2];
-            delete d3;
+            decoded[i*20 + 9] = d3[1];
+            decoded[i*20 + 10] = d3[2];
+            decoded[i*20 + 11] = d3[3];
+            delete[] d3;
             
-            string s = pass[i].substr(24, 8);
+            s = pass[i].substr(24, 8);
             int num4 = (int)strtol(s.c_str(), NULL, 16);
-            char* d4 = intToChar(num1);
+            unsigned char* d4 = intToChar(num4);
             decoded[i*20+12] = d4[0];
-            decoded[i*20 + 13] = d4[0];
-            decoded[i*20 + 14] = d4[1];
-            decoded[i*20 + 15] = d4[2];
-            delete d4;
+            decoded[i*20 + 13] = d4[1];
+            decoded[i*20 + 14] = d4[2];
+            decoded[i*20 + 15] = d4[3];
+            delete[] d4;
             
-            string s = pass[i].substr(32, 8);
+            s = pass[i].substr(32, 8);
             int num5 = (int)strtol(s.c_str(), NULL, 16);
-            char* d5 = intToChar(num1);
+            unsigned char* d5 = intToChar(num5);
             decoded[i*20+16] = d5[0];
-            decoded[i*20 + 17] = d5[0];
-            decoded[i*20 + 18] = d5[1];
-            decoded[i*20 + 19] = d5[2];
-            delete d5;
-            
-            printf("%02x\n", num);
+            decoded[i*20 + 17] = d5[1];
+            decoded[i*20 + 18] = d5[2];
+            decoded[i*20 + 19] = d5[3];
+            delete[] d5;
             ++i;
         }
     }
+    fin.close();
     
-    return 0;
+    return decoded;
 }
 bool isEqual(unsigned char* a, unsigned char* b, unsigned int size) {
     unsigned int i = 0;
@@ -188,11 +188,13 @@ unsigned char* found(unsigned char* tsp, int nbEntries, unsigned char* pass) {
     unsigned char* red = tsp;
     for(int index = 0; index<nbEntries; ++index) {
         unsigned char* sha = sha4(red);
+        delete[] red;
         if(isEqual(sha, pass, 20) )
             return tsp;
         else {
             red = reduce(sha, index);
         }
+        delete[] sha;
     }
     return NULL;
 }
@@ -206,7 +208,9 @@ void search(unsigned char* sp, unsigned char* ep, int nbEntries, unsigned char* 
             unsigned char* red = reduce(&pass[j], nbEntries - index);
             while(count < index) {
                 unsigned char* sha = sha4(red);
+                delete[] red;
                 red = reduce(sha, nbEntries - index + count);
+                delete[] sha;
                 ++count;
             }
             int z = 0;
@@ -216,8 +220,10 @@ void search(unsigned char* sp, unsigned char* ep, int nbEntries, unsigned char* 
                     if(f) {
                         print(f,4);
                         print(&pass[j], 20);
+                        delete[] f;
                     }
                 }
+                ++z;
 
             }
         }
@@ -239,7 +245,14 @@ int main()
     unsigned char* sp = new unsigned char[4*nbEntries]();
     unsigned char* ep = new unsigned char[4*nbEntries]();
     loadTable("table.dat", nbEntries, sp, ep);
-    loadPass("pass.txt", 20);
+    cout<<"Load table ok"<<endl;
+    unsigned char* pass = loadPass("pass.txt", 20);
+    cout<<"Load pass ok"<<endl;
+    search(sp, ep,  nbEntries, pass, 20, 2000);
+
+    delete[] sp;
+    delete[] ep;
+    delete[] pass;
 
 
 

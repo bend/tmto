@@ -2,8 +2,10 @@ CXXFLAGS+=-W -Wall
 LDFLAGS+= -lpthread -lcrypto
 GENERATOR=tmto
 TESTER=tester
-SOURCES=$(wildcard *.cpp)
-OBJECTS=$(SOURCES:.cpp=.o)
+SOURCES_GEN=generator.cpp
+OBJECTS_GEN=$(SOURCES_GEN:.cpp=.o)
+SOURCES_TES=tester.cpp
+OBJECTS_TES=$(SOURCES_TES:.cpp=.o)
 CC=g++
 
 all: $(GENERATOR) $(TESTER)
@@ -11,10 +13,11 @@ all: $(GENERATOR) $(TESTER)
 debug: CXXFLAGS+= -DDEBUG -g
 debug: $(GENERATOR) $(TESTER)
 
-$(GENERATOR): $(OBJECTS)
-	$(CC) -o $@ $(OBJECTS) $(LDFLAGS)
+$(GENERATOR): $(OBJECTS_GEN)
+	$(CC) -o $@ $(OBJECTS_GEN) $(LDFLAGS)
 
-$(TESTER): $(GENERATOR)
+$(TESTER): $(OBJECTS_TES)
+	$(CC) -o $@ $(OBJECTS_TES) $(LDFLAGS)
 
 
 %.o: %.cpp
@@ -23,7 +26,7 @@ $(TESTER): $(GENERATOR)
 .PHONY: clean mrproper
 
 clean:
-	@rm -f $(OBJECTS)
+	@rm -f $(OBJECTS_GEN) $(OBJECTS_TES)
 
 mrproper:
 	@rm -f $(GENERATOR) $(TESTER)

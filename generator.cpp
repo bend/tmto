@@ -26,6 +26,13 @@
 #include <sstream>
 using namespace std;
 
+void print(unsigned char* buf, int s){
+    int i;
+    for (i = 0; i < s; i++) {
+        printf("%02x ", buf[i]);
+    }
+    printf("\n");
+}
 
 unsigned char* sha4(int input){
     unsigned char value [4];
@@ -37,6 +44,15 @@ unsigned char* sha4(int input){
     value[0] = ((input >> 24) & 0xFF);
 
     SHA1(value, 4,obuf);
+    SHA1(obuf, 20,obuf);
+    SHA1(obuf, 20,obuf);
+    SHA1(obuf, 20,obuf);
+    return obuf;
+}
+
+unsigned char* sha4(unsigned char* input){
+    unsigned char *obuf = new unsigned char[20]();
+    SHA1(input, 4,obuf);
     SHA1(obuf, 20,obuf);
     SHA1(obuf, 20,obuf);
     SHA1(obuf, 20,obuf);
@@ -62,28 +78,53 @@ unsigned char* reduce(unsigned char *hash, int i){
     return newBuf;
 }
 
-void chainage();
-
-void print(unsigned char* buf, int s){
-    int i;
-    for (i = 0; i < s; i++) {
-        printf("%02x ", buf[i]);
+unsigned char* chainage(unsigned char* value, int chainSize){
+    unsigned char* sha;
+    unsigned char* red = (unsigned char*)malloc(4);
+    memcpy(red, value, 4);
+    int i = 0;
+    while(i < chainSize) {
+        sha = sha4(red);
+        free(red);
+        red = reduce(sha, i);
+        free(sha);
+        ++i;
     }
-    printf("\n");
+    return red;
 }
+
+void writeChar(FILE* f, unsigned char* c){
+    fputc(c[0], f);
+    fputc(c[1], f);
+    fputc(c[2], f);
+    fputc(c[3], f);
+}
+
 
 int main()
 {
-    unsigned int x;
-    stringstream ss;
-    ss<<hex << "e92b21b0";
-    ss >> x;
-    unsigned char* obuf = sha4(x);
-    print(obuf, 20);
-    unsigned char* ret = reduce(obuf, 1);
-    print(ret, 4);
+    int input = 0;
 
+    int nbEntries = 1250000;
+    int chainLength = 2000;
 
+    unsigned char value [4];
+    value[3] = ( input & (0xFF));
+    value[2] = ((input >> 8) & 0xFF);
+    value[1] = ((input >> 16) & 0xFF);
+    value[0] = ((input >> 24) & 0xFF);
+    int i = 0;
+    unsigned char* ep = value;
+    FILE* tf = fopen("table.dat", "w");
+    while(i<nbEntries){
+        writeChar(tf, ep);
+        ep = chainage(ep, chainLength);
+        writeChar(tf,ep);
+        if(i%100 == 0)
+            printf("%f \n",(i/(double)nbEntries)*100.0); 
+        ++i;
+    }
+    fclose(tf);
 
     return 0;
 }

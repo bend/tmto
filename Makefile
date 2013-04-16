@@ -1,4 +1,4 @@
-CXXFLAGS+=-W -Wall
+CXXFLAGS+=-W -Wall -O3
 LDFLAGS+= -lpthread -lcrypto
 GENERATOR=tmto
 TESTER=tester

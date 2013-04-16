@@ -22,9 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/sha.h>
-#include <iostream>
-#include <sstream>
-using namespace std;
 
 void print(unsigned char* buf, int s){
     int i;

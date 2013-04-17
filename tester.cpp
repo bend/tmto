@@ -25,6 +25,8 @@
 #include <vector>
 using namespace std;
 
+#include <boost/unordered_map.hpp>
+
 void print(unsigned char* buf, int s){
     int i;
     for (i = 0; i < s; i++) {
@@ -248,13 +250,15 @@ int main()
     cout<<"Load table ok"<<endl;
     unsigned char* pass = loadPass("pass.txt", 20);
     cout<<"Load pass ok"<<endl;
-    search(sp, ep,  nbEntries, pass, 20, 2000);
+    //search(sp, ep,  nbEntries, pass, 20, 2000);
 
     delete[] sp;
     delete[] ep;
     delete[] pass;
 
-
+    boost::unordered_map<string, string> map;
+    map["test"] = "test";
+    cout<<map["test"];
 
 
 

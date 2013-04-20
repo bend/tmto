@@ -108,16 +108,22 @@ void loadTable(const char* path, int nbEntries, boost::unordered_map<string,stri
     string s_ep((const char*)(ep), 4);
     map[s_ep] = s_sp;
 
-    while(i<nbEntries-1){
+    while(i < nbEntries-1){
         //New StartPoint = old EndPoint
         s_sp = s_ep;
         
+        unsigned char* char_sp = (unsigned char*) s_sp.c_str();
+        
         //get the new EndPoint
-        ep[i] = fgetc(f);
-        ep[i+1] = fgetc(f);
-        ep[i+2] = fgetc(f);
-        ep[i+3] = fgetc(f);
-        string s_ep((const char*)(ep), 4);
+        ep[0] = fgetc(f);
+        ep[1] = fgetc(f);
+        ep[2] = fgetc(f);
+        ep[3] = fgetc(f);
+        cout << "STARTING POINT : ";
+        print(char_sp,4);
+        cout << "END POINT : ";
+        print(ep,4);
+        s_ep = string((const char*)(ep), 4);
         //save the values
         map[s_ep] = s_sp;
         ++i;
@@ -207,6 +213,17 @@ bool isEqual(unsigned char* a, unsigned char* b, unsigned int size) {
     return true;
 }
 
+void reorderPass(unsigned char* pass, int index, int nbPass){
+    while(index < nbPass){
+        for(int i = 0; i < 20; i++){
+                pass[index*20+i] = pass[(index+1)*20+i];
+        }
+        ++index;
+    }      
+
+     
+}
+
 unsigned char* found(unsigned char* tsp, int lengthChain, unsigned char* pass) {
     unsigned char* red = (unsigned char*)malloc(4);
     memcpy(red, tsp, 4);
@@ -240,28 +257,52 @@ void search(unsigned char* pass, int nbPass, int chainLength,
                 delete[] sha;
                 ++count;
             }
-            
             //Check if reduce is on the hashmap
             //convert into string
             string s_red((const char*)(red), 4);
-            delete[] red;
+            //delete[] red;
             //Found in the hashmap ?
             if (map.count(s_red)){
+                cout << " ATTENTION : Valeur en HASH MAP"<< endl;
+
                 //Launch the search with the SP
                 string sp = map[s_red];
+                
                 unsigned char* char_sp = (unsigned char*) sp.c_str();
+                    cout << "StartPoint : ";
+                    print(char_sp,4);
+                    cout << "EndPoint : ";
+                    print(red,4);
                 unsigned char* f = found(char_sp, chainLength, &pass[j*20]);
                 if(f) {
-                    cout << "INT" << endl;
+                    cout << "== Hash FOUND ! ==" << endl;
+                    cout << "Index Password :" << j << endl;
+
+                    cout << "INT : ";
                     print(f,4);
-                    cout << "HASH" << endl;
+                    cout << "HASH : ";
                     print(&pass[j*20], 20);
+                    //reorderPass(&pass[0],j, nbPass);
+                    //--nbPass;
+                    //--j;
                     delete[] f;
                 }
             }    
         }
     }
 }
+
+struct load_pass_params {
+    unsigned char* pass;
+    char* path;
+    int nbPass;
+};
+
+struct load_table_params {
+    char* path;
+    int nbEntries;
+    boost::unordered_map<string, string> map;
+};
 
 int main()
 {
@@ -273,15 +314,19 @@ int main()
     unsigned char* obuf = sha4(x);
     print(obuf, 4);
     */
-    int nbEntries = 2;
-    int chainLength = 10;
-    int nbPass = 20;
+    int nbEntries = 10;
+    int chainLength = 1;
+    int nbPass = 2;
+    cout << "== INIT ==" << endl;
+    cout << "NbEntries : " << nbEntries << endl;
+    cout << "chainLength : " << chainLength << endl;
+    cout << "nbPass : " << nbPass << endl;
     boost::unordered_map<string,string> map;
-    loadTable("table.dat", nbEntries, map);
-    cout<<"Load table ok"<<endl;
+    loadTable("table2.dat", nbEntries, map);
+    cout<<"== Load Table OK =="<<endl;
     
     unsigned char* pass = loadPass("pass.txt", nbPass);
-    cout<<"Load pass ok"<<endl;
+    cout<<"== Load Pass OK =="<<endl;
     
     search(pass, nbPass, chainLength,map);
 

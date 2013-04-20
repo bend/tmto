@@ -23,6 +23,7 @@
 #include <string.h>
 #include <openssl/sha.h>
 #include <iostream>
+using namespace std;
 
 void print(unsigned char* buf, int s){
     int i;
@@ -64,10 +65,17 @@ unsigned char* chain(unsigned char* value, int chainSize){
     unsigned char* sha;
     unsigned char* red = new unsigned char[4]();
     memcpy(red, value, 4);
+    cout << "StartPoint : ";
+    print(red,4);
+            
     int i = 0;
     while(i < chainSize) {
         
         sha = sha4(red);
+        if (i == 0){
+            cout << "HASH : ";
+            print(sha,20);
+        }
         delete[] red;
         red = reduce(sha, i);
         delete[] sha;
@@ -88,8 +96,8 @@ int main()
 {
     int input = 555540717;
 
-    int nbEntries = 1;
-    int chainLength = 10;
+    int nbEntries = 10;
+    int chainLength = 1;
 
     unsigned char value [4];
     value[3] = ( input & (0xFF));
@@ -100,21 +108,26 @@ int main()
     
     unsigned char* ep = new unsigned char[4]();
     
+    cout << "NbEntries : " << nbEntries << endl;
+    cout << "chainLength : " << chainLength << endl;
     memcpy(ep, value, 4);
-    FILE* tf = fopen("table.dat", "w");
+    FILE* tf = fopen("table2.dat", "w");
+    
     while(i<nbEntries){
         writeChar(tf, ep);
         unsigned char* oldep = ep;
         ep = chain(ep, chainLength);
         delete[] oldep;
         //writeChar(tf,ep);
-        if(i%100 == 0) {
-            printf("%f\n",(i/(double)nbEntries)*100.0); 
-        }
+        //if(i%100 == 0) {
+        //    printf("%f\n",(i/(double)nbEntries)*100.0); 
+        //}
         ++i;
     }
     //write last EP
     writeChar(tf, ep);
+    cout << "End Point : ";
+    print(ep,4);
     delete[] ep;
     fclose(tf);
     return 0;

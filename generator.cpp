@@ -32,22 +32,6 @@ void print(unsigned char* buf, int s){
     printf("\n");
 }
 
-unsigned char* sha4(int input){
-    unsigned char value [4];
-    unsigned char *obuf = new unsigned char[20]();
-
-    value[3] = ( input & (0xFF));
-    value[2] = ((input >> 8) & 0xFF);
-    value[1] = ((input >> 16) & 0xFF);
-    value[0] = ((input >> 24) & 0xFF);
-
-    SHA1(value, 4,obuf);
-    SHA1(obuf, 20,obuf);
-    SHA1(obuf, 20,obuf);
-    SHA1(obuf, 20,obuf);
-    return obuf;
-}
-
 unsigned char* sha4(unsigned char* input){
     unsigned char *obuf = new unsigned char[20]();
     SHA1(input, 4,obuf);
@@ -82,6 +66,7 @@ unsigned char* chain(unsigned char* value, int chainSize){
     memcpy(red, value, 4);
     int i = 0;
     while(i < chainSize) {
+        
         sha = sha4(red);
         delete[] red;
         red = reduce(sha, i);
@@ -101,10 +86,10 @@ void writeChar(FILE* f, unsigned char* c){
 
 int main()
 {
-    int input = 0;
+    int input = 555540717;
 
-    int nbEntries = 1000000;
-    int chainLength = 2000;
+    int nbEntries = 1;
+    int chainLength = 10;
 
     unsigned char value [4];
     value[3] = ( input & (0xFF));
@@ -112,7 +97,9 @@ int main()
     value[1] = ((input >> 16) & 0xFF);
     value[0] = ((input >> 24) & 0xFF);
     int i = 0;
+    
     unsigned char* ep = new unsigned char[4]();
+    
     memcpy(ep, value, 4);
     FILE* tf = fopen("table.dat", "w");
     while(i<nbEntries){
@@ -120,12 +107,14 @@ int main()
         unsigned char* oldep = ep;
         ep = chain(ep, chainLength);
         delete[] oldep;
-        writeChar(tf,ep);
+        //writeChar(tf,ep);
         if(i%100 == 0) {
             printf("%f\n",(i/(double)nbEntries)*100.0); 
         }
         ++i;
     }
+    //write last EP
+    writeChar(tf, ep);
     delete[] ep;
     fclose(tf);
     return 0;

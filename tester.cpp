@@ -36,12 +36,13 @@ struct load_pass_params {
 struct load_table_params {
     char* path;
     int nbEntries;
-    boost::unordered_map<string, string> map;
+    boost::unordered_map<string, string> *map;
 };
 
 struct search_params {
     int chainLength;
-    boost::unordered_map<string, string> map;
+    boost::unordered_map<string, string> *map;
+    int threadNb;
 };
 
 unsigned int nextI;
@@ -49,6 +50,19 @@ vector<unsigned char*> vectPass;
 pthread_mutex_t lock;
 pthread_mutex_t plock;
         
+unsigned char* calculStartPoint(int i,int nbEntries){
+    unsigned char* val = new unsigned char[4]();
+    int totalSize = 2100000;
+    int startPoint =  800*i;
+    
+    val[3] = ( startPoint & (0xFF));
+    val[2] = ((startPoint >> 8) & 0xFF);
+    val[1] = ((startPoint >> 16) & 0xFF);
+    val[0] = ((startPoint >> 24) & 0xFF);
+    
+    return val;
+       
+}
 
 void print(unsigned char* buf, int s){
     int i;
@@ -72,17 +86,41 @@ int isOddParity(unsigned char myChar) {
     return (0x6996 >> myChar) & 1;
 }
 
-unsigned char* reduce(unsigned char *hash, int i){
+unsigned char* reduce(unsigned char* ep, int i){
     unsigned char *newBuf = new unsigned char[4]();
-    newBuf[0] =((hash[0] + i) % 255); 
-    newBuf[1] =((hash[1] + i) % 255);
-    newBuf[2] =((hash[2] + i) % 255);
-    newBuf[3] =((hash[3] + i) % 255);
+    if((i % 2) == 0)
+        newBuf[0] =((ep[0] + i) % 255);
+    else
+        newBuf[0] =((ep[0] - i) % 255); 
+    
+    if((i % 3) == 0)
+        newBuf[1] =((ep[1] + i) % 255);
+    else
+        newBuf[1] =((ep[1] - i) % 255);
+    
+    if((i % 5) == 0)
+        newBuf[2] =((ep[2] + i) % 255);
+    else
+        newBuf[2] =((ep[2] - i) % 255);
+
+    if((i % 7) == 0)
+        newBuf[3] =((ep[3] + i) % 255);
+    else
+        newBuf[3] =((ep[3] - i) % 255);    
+
     int parity = (isOddParity(newBuf[0]) + isOddParity(newBuf[1]) + isOddParity(newBuf[2]) + isOddParity(newBuf[3]) ) % 2;
     if( parity == 1){
-        newBuf[0] ^= 1;
+        int in = i % 4;
+        if (in == 0)
+            newBuf[0] ^= 1;
+        if (in == 1)
+            newBuf[1] ^= 1;
+        if (in == 2)
+            newBuf[2] ^= 1;
+        if (in == 3)
+            newBuf[3] ^= 1;      
     }
-    return newBuf;
+    return newBuf;   
 }
 
 unsigned char* intToChar(int input){
@@ -95,7 +133,6 @@ unsigned char* intToChar(int input){
     return value;
 
 }
-
 
 unsigned char* sha4(unsigned char* input){
     unsigned char *obuf = new unsigned char[20]();
@@ -113,7 +150,7 @@ void* loadTable(void* args) {
     struct load_table_params *arg = (struct load_table_params*)args;
     const char* path = arg->path;
     int nbEntries = arg->nbEntries;
-    boost::unordered_map<string, string> map = arg->map;
+    boost::unordered_map<string, string> *map = arg->map;
     FILE* f = fopen(path, "r");
     int i = 0;
     unsigned char* sp = new unsigned char[4]();
@@ -133,31 +170,38 @@ void* loadTable(void* args) {
     //save the first value
     string s_sp((const char*)(sp), 4);
     string s_ep((const char*)(ep), 4);
-    map[s_ep] = s_sp;
+    (*map)[s_ep] = s_sp;
+    ++i;
 
     while(i < nbEntries-1){
         //New StartPoint = old EndPoint
-        s_sp = s_ep;
+        sp = calculStartPoint(i,nbEntries);
+        s_sp = string((const char*)(sp), 4); 
+     
         
-        unsigned char* char_sp = (unsigned char*) s_sp.c_str();
         
         //get the new EndPoint
         ep[0] = fgetc(f);
         ep[1] = fgetc(f);
         ep[2] = fgetc(f);
         ep[3] = fgetc(f);
-        cout << "STARTING POINT : ";
-        print(char_sp,4);
-        cout << "END POINT : ";
-        print(ep,4);
         s_ep = string((const char*)(ep), 4);
         //save the values
-        map[s_ep] = s_sp;
+        (*map)[s_ep] = s_sp;
+        
+        //s_sp = s_ep;
+        //cout << "SP : ";
+        //print(sp,4);
+        //cout << "EP : ";
+        //print(ep,4);  
+
         ++i;
     }
     delete[] ep;
     delete[] sp;
     fclose(f);
+    arg->map = map;
+    cout<<"Finished table load. Map size : "<<map->size()<<endl;
     return NULL;
 }
 
@@ -281,24 +325,23 @@ unsigned char* found(unsigned char* tsp, int lengthChain, unsigned char* pass) {
 void* search(void* args){
     struct search_params *arg = (struct search_params*)args;
     int chainLength = arg->chainLength;
-    boost::unordered_map<string, string> map = arg->map;
-
-    for (int index = 1; index < chainLength + 1; ++index) {
-        while(1) {
-            unsigned char* pass;
-            /*  Get Next pass */
-            pthread_mutex_lock(&lock);
-            if(nextI < vectPass.size()) {
-                pass = vectPass[nextI];
-                ++nextI;
-            }else {
-                pthread_mutex_unlock(&lock);
-                return NULL;
-            }
+    boost::unordered_map<string, string> *map = arg->map;
+    unsigned char* pass;
+    /*  Get Next pass */
+    while(1){
+        pthread_mutex_lock(&lock);
+        if(nextI < vectPass.size()) {
+            pass = vectPass[nextI];
+            ++nextI;
+        }else {
             pthread_mutex_unlock(&lock);
-            //cout<<"Processing pass : ";
-            print(pass, 20);
+            return NULL;
+        }
+        cout<<"Pass is : ";
+        print(pass, 20);
 
+        for (int index = 1; index < chainLength + 1; ++index) {
+            pthread_mutex_unlock(&lock);
             int count = 1;
             unsigned char* red = reduce(pass, chainLength - index );
             while(count < index) {
@@ -311,18 +354,19 @@ void* search(void* args){
             //Check if reduce is on the hashmap
             //convert into string
             string s_red((const char*)(red), 4);
+            //delete[] red;
             //Found in the hashmap ?
-            if (map.count(s_red)){
-                cout << " ATTENTION : Valeur en HASH MAP"<< endl;
+            if (map->count(s_red)){
+                //cout << " ATTENTION : Valeur en HASH MAP"<< endl;
 
                 //Launch the search with the SP
-                string sp = map[s_red];
+                string sp = (*map)[s_red];
 
                 unsigned char* char_sp = (unsigned char*) sp.c_str();
-                cout << "StartPoint : ";
-                print(char_sp,4);
-                cout << "EndPoint : ";
-                print(red,4);
+                //cout << "StartPoint : ";
+                //print(char_sp,4);
+                //cout << "EndPoint : ";
+                //print(red,4);
                 unsigned char* f = found(char_sp, chainLength, pass);
                 if(f) {
                     pthread_mutex_lock(&plock);
@@ -333,9 +377,9 @@ void* search(void* args){
                     print(pass, 20);
                     pthread_mutex_unlock(&plock);
                     delete[] f;
+                    break;
                 }
             }    
-            delete[] red;
         }
     }
     return NULL;
@@ -344,15 +388,15 @@ void* search(void* args){
 
 int main()
 {
-    int nbEntries = 10;
-    int chainLength = 1;
+    int nbEntries = 2500000;
+    int chainLength = 3000;
     int nbPass = 20;
-    int nbThreads = 2;
+    int nbThreads = 1;
     cout << "== INIT ==" << endl;
     cout << "NbEntries : " << nbEntries << endl;
     cout << "chainLength : " << chainLength << endl;
     cout << "nbPass : " << nbPass << endl;
-    boost::unordered_map<string,string> map;
+    boost::unordered_map<string,string> *map = new boost::unordered_map<string, string>();
     char path[20] = "table2.dat";
     char path2[20] = "pass.txt";
 
@@ -384,6 +428,7 @@ int main()
     /* Search params*/
     struct search_params sp;
     sp.chainLength = chainLength;
+    cout<<"Map size in main"<<map->size()<<endl;
     sp.map = map;
   
     pthread_t threads[nbThreads];

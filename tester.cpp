@@ -11,21 +11,22 @@
  *       Compiler:  gcc
  *
  *         Author:  Benoit Daccache (BD), ben.daccache@gmail.com
- *   Organization:  
  *
  * =====================================================================================
  */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <openssl/sha.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <vector>
 using namespace std;
 
+#include "utils.h"
+
 #include <boost/unordered_map.hpp>
+using namespace boost;
 
 struct load_pass_params {
     vector<unsigned char*> pass;
@@ -36,12 +37,12 @@ struct load_pass_params {
 struct load_table_params {
     char* path;
     int nbEntries;
-    boost::unordered_map<string, string> *map;
+    unordered_map<string, string> *map;
 };
 
 struct search_params {
     int chainLength;
-    boost::unordered_map<string, string> *map;
+    unordered_map<string, string> *map;
     int threadNb;
 };
 
@@ -50,78 +51,8 @@ vector<unsigned char*> vectPass;
 pthread_mutex_t lock;
 pthread_mutex_t plock;
         
-unsigned char* calculStartPoint(int i,int nbEntries){
-    unsigned char* val = new unsigned char[4]();
-    int totalSize = 2100000;
-    int startPoint =  800*i;
-    
-    val[3] = ( startPoint & (0xFF));
-    val[2] = ((startPoint >> 8) & 0xFF);
-    val[1] = ((startPoint >> 16) & 0xFF);
-    val[0] = ((startPoint >> 24) & 0xFF);
-    
-    return val;
-       
-}
 
-void print(unsigned char* buf, int s){
-    int i;
-    for (i = 0; i < s; i++) {
-        printf("%02x ", buf[i]);
-    }
-    printf("\n");
-}
 
-void printToInt(unsigned char* buf, int s){
-    int i;
-    for (i = 0; i < s; i++) {
-        printf("%u ", buf[i]);
-    }
-    printf("\n");
-}
-
-int isOddParity(unsigned char myChar) {
-    myChar ^= myChar >> 4;
-    myChar &= 0xf;
-    return (0x6996 >> myChar) & 1;
-}
-
-unsigned char* reduce(unsigned char* ep, int i){
-    unsigned char *newBuf = new unsigned char[4]();
-    if((i % 2) == 0)
-        newBuf[0] =((ep[0] + i) % 255);
-    else
-        newBuf[0] =((ep[0] - i) % 255); 
-    
-    if((i % 3) == 0)
-        newBuf[1] =((ep[1] + i) % 255);
-    else
-        newBuf[1] =((ep[1] - i) % 255);
-    
-    if((i % 5) == 0)
-        newBuf[2] =((ep[2] + i) % 255);
-    else
-        newBuf[2] =((ep[2] - i) % 255);
-
-    if((i % 7) == 0)
-        newBuf[3] =((ep[3] + i) % 255);
-    else
-        newBuf[3] =((ep[3] - i) % 255);    
-
-    int parity = (isOddParity(newBuf[0]) + isOddParity(newBuf[1]) + isOddParity(newBuf[2]) + isOddParity(newBuf[3]) ) % 2;
-    if( parity == 1){
-        int in = i % 4;
-        if (in == 0)
-            newBuf[0] ^= 1;
-        if (in == 1)
-            newBuf[1] ^= 1;
-        if (in == 2)
-            newBuf[2] ^= 1;
-        if (in == 3)
-            newBuf[3] ^= 1;      
-    }
-    return newBuf;   
-}
 
 unsigned char* intToChar(int input){
     unsigned char *value = new unsigned char[4]();
@@ -134,14 +65,6 @@ unsigned char* intToChar(int input){
 
 }
 
-unsigned char* sha4(unsigned char* input){
-    unsigned char *obuf = new unsigned char[20]();
-    SHA1(input, 4,obuf);
-    SHA1(obuf, 20,obuf);
-    SHA1(obuf, 20,obuf);
-    SHA1(obuf, 20,obuf);
-    return obuf;
-}
 
 /*
  * Load the table in the hashmap with Key = EP and Value = SP
@@ -150,7 +73,7 @@ void* loadTable(void* args) {
     struct load_table_params *arg = (struct load_table_params*)args;
     const char* path = arg->path;
     int nbEntries = arg->nbEntries;
-    boost::unordered_map<string, string> *map = arg->map;
+    unordered_map<string, string> *map = arg->map;
     FILE* f = fopen(path, "r");
     int i = 0;
     unsigned char* sp = new unsigned char[4]();
@@ -175,7 +98,7 @@ void* loadTable(void* args) {
 
     while(i < nbEntries-1){
         //New StartPoint = old EndPoint
-        sp = calculStartPoint(i,nbEntries);
+        sp = get_start_point(i);
         s_sp = string((const char*)(sp), 4); 
      
         
@@ -306,7 +229,7 @@ unsigned char* found(unsigned char* tsp, int lengthChain, unsigned char* pass) {
     unsigned char* red = (unsigned char*)malloc(4);
     memcpy(red, tsp, 4);
     for(int index = 0; index < lengthChain; ++index) {
-        unsigned char* sha = sha4(red);
+        unsigned char* sha = sha1p4(red);
         if(isEqual(sha, pass, 20) ){
             delete[] sha;
             return red;
@@ -325,7 +248,7 @@ unsigned char* found(unsigned char* tsp, int lengthChain, unsigned char* pass) {
 void* search(void* args){
     struct search_params *arg = (struct search_params*)args;
     int chainLength = arg->chainLength;
-    boost::unordered_map<string, string> *map = arg->map;
+    unordered_map<string, string> *map = arg->map;
     unsigned char* pass;
     /*  Get Next pass */
     while(1){
@@ -345,7 +268,7 @@ void* search(void* args){
             int count = 1;
             unsigned char* red = reduce(pass, chainLength - index );
             while(count < index) {
-                unsigned char* sha = sha4(red);
+                unsigned char* sha = sha1p4(red);
                 delete[] red;
                 red = reduce(sha, chainLength - index + count);
                 delete[] sha;
@@ -396,7 +319,7 @@ int main()
     cout << "NbEntries : " << nbEntries << endl;
     cout << "chainLength : " << chainLength << endl;
     cout << "nbPass : " << nbPass << endl;
-    boost::unordered_map<string,string> *map = new boost::unordered_map<string, string>();
+    unordered_map<string,string> *map = new unordered_map<string, string>();
     char path[20] = "table2.dat";
     char path2[20] = "pass.txt";
 

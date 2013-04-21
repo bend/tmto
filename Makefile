@@ -2,9 +2,9 @@ CXXFLAGS+=-W -Wall -O3
 LDFLAGS+= -lpthread -lcrypto
 GENERATOR=generator
 TESTER=tester
-SOURCES_GEN=generator.cpp
+SOURCES_GEN=generator.cpp utils.cpp
 OBJECTS_GEN=$(SOURCES_GEN:.cpp=.o)
-SOURCES_TES=tester.cpp
+SOURCES_TES=tester.cpp utils.cpp
 OBJECTS_TES=$(SOURCES_TES:.cpp=.o)
 CC=g++
 

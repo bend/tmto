@@ -79,7 +79,7 @@ void* password_preload(void* args){
         arg->pass.push_back(tPass);
         ++i;
     }
-    cout<<"Finished pass load"<<endl;
+    cout<<"Info : Finished pass load"<<endl;
     return NULL;
 }
 
@@ -103,9 +103,7 @@ void* table_preload(void* args) {
     fclose(f);
     delete[] ep;
     delete[] sp;
-    
-    cout<<"Info :: table_preload end"<<endl;
-
+    cout<<"Info : Finished table load"<<endl;
     return NULL;
 }
 
@@ -124,9 +122,6 @@ void* search(void* args){
             pthread_mutex_unlock(&arg->lock);
             return NULL;
         }
-        cout<<"Pass is : ";
-        print(pass, 20);
-
         for (int index = 1; index < len + 1; ++index) {
             pthread_mutex_unlock(&arg->lock);
             int count = 1;
@@ -138,11 +133,7 @@ void* search(void* args){
                 delete[] sha;
                 ++count;
             }
-            //Check if reduce is on the hashmap
-            //convert into string
             string s_red((const char*)(red), 4);
-            //delete[] red;
-            //Found in the hashmap ?
             if (map->count(s_red)){
                 //Launch the search with the SP
                 string sp = (*map)[s_red];
@@ -165,14 +156,8 @@ void* search(void* args){
                 }
                 if(f) {
                     pthread_mutex_lock(&arg->plock);
-                    cout << "== Hash FOUND ! ==" << endl;
-                    cout << "INT : ";
-                    print(f,4);
-                    cout << "HASH : ";
-                    print(pass, 20);
-
-                    fprint(f, pass, arg->output);
-
+                    cout<<"Info : Password found ("<<++arg->nb_found<<"/"<<arg->nb_pass<<")"<<endl;
+                    fprint(pass,f, arg->output);
                     pthread_mutex_unlock(&arg->plock);
                     delete[] f;
                     break;
@@ -183,16 +168,28 @@ void* search(void* args){
     return NULL;
 }
 
+unsigned char* invert_result(unsigned char* pass){
+    unsigned char* n = new unsigned char[4]();
+    n[0] = pass[3];
+    n[1] = pass[2];
+    n[2] = pass[1];
+    n[3] = pass[0];
+    return n;
+}
+
 void fprint(unsigned char* hash, unsigned char* pass, FILE* f){
     int i;
+    unsigned char* inv = invert_result(pass);
     for (i = 0; i < 20; i++) {
         fprintf(f, "%02x ", hash[i]);
     }
     fprintf(f, " | ");
     for (i = 0; i < 4; i++) {
-        fprintf(f, "%02x ", pass[i]);
+        fprintf(f, "%02x ", inv[i]);
     }
     fprintf(f,"\n");
+    fflush(f);
+    delete[] inv;
 }
 
 void thread_search(struct search_params *sp, unsigned int nb_threads){
@@ -239,6 +236,8 @@ void start(struct run_params* params){
     pthread_mutex_init(&sp.plock, NULL);
     sp.pass = &pp.pass;
     sp.next_pass_index = 0;
+    sp.nb_pass = params->nb_pass;
+    sp.nb_found = 0;
     FILE* f = fopen(params->output_path, "w");
     if(!f){
         perror("ERROR : fopen() : ");

@@ -15,9 +15,17 @@
  *
  * =====================================================================================
  */
+#ifndef __GENERATOR_HH__
+#define __GENERATOR_HH__
 
 #include "utils.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <iostream>
 
 unsigned char* create_chain(unsigned char* val, size_t size);
 
 void fwrite(FILE* file, unsigned char* c);
+
+#endif

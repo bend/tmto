@@ -36,7 +36,9 @@ struct load_table_params {
 };
 
 struct search_params {
-    int chain_length;
+    unsigned int chain_length;
+    unsigned int nb_pass;
+    unsigned int nb_found;
     boost::unordered_map<std::string, std::string> *map;
     int next_pass_index;
     std::vector<unsigned char*> *pass;

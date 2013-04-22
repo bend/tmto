@@ -23,15 +23,15 @@
 #include <iostream>
 using namespace std;
 
-#include "utils.h"
+#include "generator.h"
 
-unsigned char* chain(unsigned char* value, int chainSize){
+unsigned char* create_chain(unsigned char* val, size_t size){
     unsigned char* sha;
     unsigned char* red = new unsigned char[4]();
-    memcpy(red, value, 4);
+    memcpy(red, val, 4);
             
-    int i = 0;
-    while(i < chainSize) {   
+    size_t i = 0;
+    while(i < size) {   
         sha = sha1p4(red);
         delete[] red;
         red = reduce(sha, i);
@@ -41,7 +41,7 @@ unsigned char* chain(unsigned char* value, int chainSize){
     return red;
 }
 
-void writeChar(FILE* f, unsigned char* c){
+void fwrite(FILE* f, unsigned char* c){
     fputc(c[0], f);
     fputc(c[1], f);
     fputc(c[2], f);
@@ -63,7 +63,6 @@ int main()
     int i = 0;
     
     unsigned char* ep = new unsigned char[4]();
-    unsigned char* sp = new unsigned char[4]();
 
     
     cout << "NbEntries : " << nbEntries << endl;
@@ -72,18 +71,17 @@ int main()
     FILE* tf = fopen("table2.dat", "w");
     
     while(i<nbEntries){
-        writeChar(tf, ep);
-        unsigned char* oldep = ep;
-        sp = get_start_point(i);
-        ep = chain(sp, chainLength);
-        delete[] oldep;
+        fwrite(tf, ep);
+        //unsigned char* oldep = ep;
+        ep = create_chain(ep, chainLength);
+        //delete[] oldep;
         if(i%100 == 0) {
             printf("%f\n",(i/(double)nbEntries)*100.0); 
         }
         ++i;
     }
     //write last EP
-    writeChar(tf, ep);
+    fwrite(tf, ep);
     cout << "End Point : ";
     print(ep,4);
     delete[] ep;

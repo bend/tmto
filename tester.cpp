@@ -37,70 +37,12 @@ unsigned char* to_char(int input){
 }
 
 void* table_preload(void* args) {
-    /* /
-    struct load_table_params *arg = (struct load_table_params*)args;
-    const char* path = arg->path;
-    int nbEntries = arg->nb_entries;
-    unordered_map<string, string> *map = arg->map;
-    FILE* f = fopen(path, "r");
-    int i = 0;
-    unsigned char* sp = new unsigned char[4]();
-    unsigned char* ep = new unsigned char[4]();
-    
-    //load the 2 first values
-    sp[i] = fgetc(f);
-    sp[i+1] = fgetc(f);
-    sp[i+2] = fgetc(f);
-    sp[i+3] = fgetc(f);
-
-    ep[i] = fgetc(f);
-    ep[i+1] = fgetc(f);
-    ep[i+2] = fgetc(f);
-    ep[i+3] = fgetc(f);
-    
-    //save the first value
-    string s_sp((const char*)(sp), 4);
-    string s_ep((const char*)(ep), 4);
-    (*map)[s_ep] = s_sp;
-
-    while(i < nbEntries-1){
-        //New StartPoint = old EndPoint
-        s_sp = s_ep;
-     
-        unsigned char* char_sp = (unsigned char*) s_sp.c_str();
-        
-        //get the new EndPoint
-        ep[0] = fgetc(f);
-        ep[1] = fgetc(f);
-        ep[2] = fgetc(f);
-        ep[3] = fgetc(f);
-
-        cout << "STARTING POINT : ";
-        print(char_sp,4);
-        cout << "END POINT : ";
-        print(ep,4);
-        string s_ep((const char*)(ep), 4);
-        //save the values
-        (*map)[s_ep] = s_sp;
-        ++i;
-    }
-    delete[] ep;
-    delete[] sp;
-    fclose(f);
-    arg->map = map;
-    cout<<"Finished table load. Map size : "<<map->size()<<endl;
-    return NULL;
-*/
     struct load_table_params *arg = (struct load_table_params*) args;
-    const char* path = arg->path;
-    int nbEntries = arg->nb_entries;
-    boost::unordered_map<string, string> *map = arg->map;
-    FILE* f = fopen(path, "r");
+    FILE* f = fopen(arg->path, "r");
     unsigned char* endPoint = new unsigned char[4]();
     unsigned char* startPoint = new unsigned char[4]();
-    
-    for(int i = 0; i< nbEntries;++i){
-        //load the 2 first values
+    int i = 0;
+    while(i < arg->nb_entries) {
         startPoint[0] = fgetc(f);
         startPoint[1] = fgetc(f);
         startPoint[2] = fgetc(f);
@@ -112,36 +54,34 @@ void* table_preload(void* args) {
         //save the first value
         string s_sp((const char*)(startPoint), 4);
         string s_ep((const char*)(endPoint), 4);
-        (*map)[s_ep] = s_sp;
+        (*arg->map)[s_ep] = s_sp;
+        ++i;
     }
     fclose(f);
-    arg->map = map;
-    cout<<"=== Finished table load. ==="<< map->size()<<endl;
-    
     delete[] endPoint;
     delete[] startPoint;
+    
+    cout<<"Info :: table_preload end"<<endl;
+
     return NULL;
 }
 
 void* password_preload(void* args){
     struct load_pass_params *arg = (struct load_pass_params*)args;
-    const char* path = arg->path;
-    int nbEntries = arg->nb_pass;
-    vector<unsigned char*> vPass = arg->pass;
     fstream fin;
     vector<string> pass;
-    fin.open(path, ios::in);
+    fin.open(arg->path, ios::in);
     string word;
     if (fin.is_open()) {
         int i=0;
-        while(i<nbEntries){
+        while(i< arg->nb_pass){
             getline(fin, word, '\n');
             pass.push_back(word);
             ++i;
         }
         stringstream ss;
         i = 0;
-        while(i<nbEntries){
+        while(i < arg->nb_pass){
             unsigned char* tPass = new unsigned char[20]();
             string s = pass[i].substr(0, 8);
             int num1 = (int) strtoul(s.c_str(), NULL, 16);
@@ -187,32 +127,21 @@ void* password_preload(void* args){
             tPass[18] = d5[2];
             tPass[19] = d5[3];
             delete[] d5;
-            vPass.push_back(tPass);
+            arg->pass.push_back(tPass);
             ++i;
         }
     }
     fin.close();
-    arg->pass = vPass;
     cout<<"Finished pass load"<<endl;
     return NULL;
 }
-bool equal(unsigned char* a, unsigned char* b, unsigned int size) {
-    unsigned int i = 0;
-    while(i<size) {
-        if(a[i] != b[i] )
-            return false;
-        ++i;
-    }
-    return true;
-}
 
-unsigned char* find(unsigned char* tsp, int lengthChain, unsigned char* pass) {
+unsigned char* find(unsigned char* s, int len, unsigned char* pass) {
     unsigned char* red = (unsigned char*)malloc(4);
-    memcpy(red, tsp, 4);
-    for(int index = 0; index < lengthChain; ++index) {
+    memcpy(red, s, 4);
+    for(int index = 0; index < len; ++index) {
         unsigned char* sha = sha1p4(red);
-        //strncmp
-        if(::equal(sha, pass, 20) ){
+        if(strncmp((const char*)sha, (const char*)pass, 20) == 0 ){
             delete[] sha;
             return red;
         }
@@ -225,7 +154,6 @@ unsigned char* find(unsigned char* tsp, int lengthChain, unsigned char* pass) {
     delete[] red;
     return NULL;
 }
-
 
 void* search(void* args){
     struct search_params *arg = (struct search_params*)args;

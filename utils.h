@@ -17,8 +17,6 @@
 
 #include <openssl/sha.h>
 
-unsigned char* get_start_point(int i);
-
 unsigned char* sha1p4(unsigned char* input);
 
 void print(unsigned char* buf, int s);
@@ -28,3 +26,5 @@ void print_int(unsigned char* buf, int s);
 int isOddParity(unsigned char myChar);
 
 unsigned char* reduce(unsigned char* ep, int i);
+
+unsigned char* to_char(int input);

@@ -18,16 +18,15 @@
 #include "utils.h"
 #include <stdio.h>
 
-unsigned char* get_start_point(int i){
-    unsigned char* val = new unsigned char[4]();
-    int startPoint =  800*i;
-    
-    val[3] = ( startPoint & (0xFF));
-    val[2] = ((startPoint >> 8) & 0xFF);
-    val[1] = ((startPoint >> 16) & 0xFF);
-    val[0] = ((startPoint >> 24) & 0xFF);
-    
-    return val;
+unsigned char* to_char(int input){
+    unsigned char *value = new unsigned char[4]();
+
+    value[3] = ( input & (0xFF));
+    value[2] = ((input >> 8) & 0xFF);
+    value[1] = ((input >> 16) & 0xFF);
+    value[0] = ((input >> 24) & 0xFF);
+    return value;
+
 }
 
 unsigned char* sha1p4(unsigned char* input){

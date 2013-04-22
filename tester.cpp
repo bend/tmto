@@ -61,30 +61,26 @@ void* table_preload(void* args) {
     string s_sp((const char*)(sp), 4);
     string s_ep((const char*)(ep), 4);
     (*map)[s_ep] = s_sp;
-    ++i;
 
     while(i < nbEntries-1){
         //New StartPoint = old EndPoint
-        sp = get_start_point(i);
-        s_sp = string((const char*)(sp), 4); 
+        s_sp = s_ep;
      
-        
+        unsigned char* char_sp = (unsigned char*) s_sp.c_str();
         
         //get the new EndPoint
         ep[0] = fgetc(f);
         ep[1] = fgetc(f);
         ep[2] = fgetc(f);
         ep[3] = fgetc(f);
-        s_ep = string((const char*)(ep), 4);
+
+        cout << "STARTING POINT : ";
+        print(char_sp,4);
+        cout << "END POINT : ";
+        print(ep,4);
+        string s_ep((const char*)(ep), 4);
         //save the values
         (*map)[s_ep] = s_sp;
-        
-        //s_sp = s_ep;
-        //cout << "SP : ";
-        //print(sp,4);
-        //cout << "EP : ";
-        //print(ep,4);  
-
         ++i;
     }
     delete[] ep;

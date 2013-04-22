@@ -37,6 +37,7 @@ unsigned char* to_char(int input){
 }
 
 void* table_preload(void* args) {
+    /* /
     struct load_table_params *arg = (struct load_table_params*)args;
     const char* path = arg->path;
     int nbEntries = arg->nb_entries;
@@ -88,6 +89,37 @@ void* table_preload(void* args) {
     fclose(f);
     arg->map = map;
     cout<<"Finished table load. Map size : "<<map->size()<<endl;
+    return NULL;
+*/
+    struct load_table_params *arg = (struct load_table_params*) args;
+    const char* path = arg->path;
+    int nbEntries = arg->nb_entries;
+    boost::unordered_map<string, string> *map = arg->map;
+    FILE* f = fopen(path, "r");
+    unsigned char* endPoint = new unsigned char[4]();
+    unsigned char* startPoint = new unsigned char[4]();
+    
+    for(int i = 0; i< nbEntries;++i){
+        //load the 2 first values
+        startPoint[0] = fgetc(f);
+        startPoint[1] = fgetc(f);
+        startPoint[2] = fgetc(f);
+        startPoint[3] = fgetc(f);
+        endPoint[0] = fgetc(f);
+        endPoint[1] = fgetc(f);
+        endPoint[2] = fgetc(f);
+        endPoint[3] = fgetc(f);
+        //save the first value
+        string s_sp((const char*)(startPoint), 4);
+        string s_ep((const char*)(endPoint), 4);
+        (*map)[s_ep] = s_sp;
+    }
+    fclose(f);
+    arg->map = map;
+    cout<<"=== Finished table load. ==="<< map->size()<<endl;
+    
+    delete[] endPoint;
+    delete[] startPoint;
     return NULL;
 }
 
@@ -179,6 +211,7 @@ unsigned char* find(unsigned char* tsp, int lengthChain, unsigned char* pass) {
     memcpy(red, tsp, 4);
     for(int index = 0; index < lengthChain; ++index) {
         unsigned char* sha = sha1p4(red);
+        //strncmp
         if(::equal(sha, pass, 20) ){
             delete[] sha;
             return red;
@@ -229,16 +262,11 @@ void* search(void* args){
             //delete[] red;
             //Found in the hashmap ?
             if (map->count(s_red)){
-                //cout << " ATTENTION : Valeur en HASH MAP"<< endl;
-
                 //Launch the search with the SP
                 string sp = (*map)[s_red];
 
                 unsigned char* char_sp = (unsigned char*) sp.c_str();
-                //cout << "StartPoint : ";
-                //print(char_sp,4);
-                //cout << "EndPoint : ";
-                //print(red,4);
+                
                 unsigned char* f = find(char_sp, chainLength, pass);
                 if(f) {
                     pthread_mutex_lock(&arg->plock);
@@ -305,17 +333,17 @@ void start(struct run_params* params){
     thread_search(&sp, params->nb_threads);
 }
 
-int main()
+int main(char* argc, char** argv)
 {
     //char path[20] = "table10000.dat";
     //char path2[20] = "pass.txt";
     //
     struct run_params rp;
-    rp.chain_length = 10000;
-    rp.nb_entries = 2500000;
+    rp.chain_length = 2000;
+    rp.nb_entries = 2000000;
     rp.nb_pass = 20;
     rp.nb_threads = 4;
-    rp.table_path = "table10000.dat";
+    rp.table_path = "table2.dat";
     rp.pass_path =  "pass.txt";
 
     start(&rp);

@@ -24,12 +24,12 @@
 using namespace std;
 
 #include "generator.h"
+#include <boost/unordered_map.hpp>
 
 unsigned char* create_chain(unsigned char* val, size_t size){
     unsigned char* sha;
     unsigned char* red = new unsigned char[4]();
     memcpy(red, val, 4);
-            
     size_t i = 0;
     while(i < size) {   
         sha = sha1p4(red);
@@ -48,12 +48,36 @@ void fwrite(FILE* f, unsigned char* c){
     fputc(c[3], f);
 }
 
+unsigned char* to_char(int input){
+    unsigned char *value = new unsigned char[4]();
+
+    value[3] = ( input & (0xFF));
+    value[2] = ((input >> 8) & 0xFF);
+    value[1] = ((input >> 16) & 0xFF);
+    value[0] = ((input >> 24) & 0xFF);
+    return value;
+
+}
+
+unsigned char* getStartPoint(int iteration){
+    unsigned char* startPoint = new unsigned char[4]();
+    int startPointInt =  55*iteration;
+    
+    startPoint[3] = ( startPointInt & (0xFF));
+    startPoint[2] = ((startPointInt >> 8) & 0xFF);
+    startPoint[1] = ((startPointInt >> 16) & 0xFF);
+    startPoint[0] = ((startPointInt >> 24) & 0xFF);
+    return startPoint;
+       
+}
+
 int main()
 {
+    /* 
     int input = 0;
 
     int nbEntries = 2500000;
-    int chainLength = 3000;
+    int chainLength = 500;
 
     unsigned char value [4];
     value[3] = ( input & (0xFF));
@@ -85,6 +109,54 @@ int main()
     cout << "End Point : ";
     print(ep,4);
     delete[] ep;
+    fclose(tf);
+    return 0;
+    */
+
+    unsigned char* value;
+    unsigned char* startPoint = new unsigned char[4]();
+    unsigned char* endPoint = new unsigned char[4]();
+    unsigned char* oldep;
+    int startValue = 0;
+    
+    value = to_char(startValue);
+    memcpy(startPoint, value, 4);
+
+    int numberEntries = 1250000;
+    int chainLength = 2;
+
+    cout << "== Starting Generation ==" << endl;
+    cout << "[Entries : " << numberEntries << "]" << endl;
+    cout << "[Chain Length : " << chainLength << "]" << endl;
+    FILE* tf = fopen("table2.dat", "w");
+    boost::unordered_map<string,string> *map = new boost::unordered_map<string, string>();
+
+    int countDoublon = 0;
+    
+    //Creation de la table
+    for(int i = 0,j=0;i<numberEntries;i++,j++){
+         endPoint = create_chain(startPoint, chainLength);
+         string s_ep((const char*)(endPoint), 4); 
+         if (map->count(s_ep)){
+            countDoublon++;
+            --i;
+        } else {
+             fwrite(tf, startPoint);   
+             fwrite(tf, endPoint);
+             (*map)[s_ep] = "";
+        }
+        startPoint = getStartPoint(j); 
+        oldep = endPoint;
+        delete[] oldep;
+    }
+    cout << endl;
+    cout << "-------------------" <<endl;
+    cout << "Generation finished " <<endl;
+    cout << "-------------------"<<endl;
+    cout << endl;
+    cout << "== Generation Statistics == " << endl;
+    cout << "Copies during generation : " << countDoublon <<endl;
+    //Write last EP
     fclose(tf);
     return 0;
 }

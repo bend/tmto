@@ -93,6 +93,9 @@ int main()
         startPoint = getStartPoint(j); 
         oldep = endPoint;
         delete[] oldep;
+        if(i%1000 == 0){
+            cout<<"\r"<<(double)(i/(double)numberEntries)*100.0<<"%";
+        }
     }
     cout << endl;
     cout << "-------------------" <<endl;

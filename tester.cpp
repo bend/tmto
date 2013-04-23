@@ -156,7 +156,8 @@ void* search(void* args){
                 }
                 if(f) {
                     pthread_mutex_lock(&arg->plock);
-                    cout<<"Info : Password found ("<<++arg->nb_found<<"/"<<arg->nb_pass<<")"<<endl;
+                    cout<<"\rInfo : Password found ("<<++arg->nb_found<<"/"<<arg->nb_pass<<")";
+                    fflush(stdout);
                     fprint(pass,f, arg->output);
                     pthread_mutex_unlock(&arg->plock);
                     delete[] f;

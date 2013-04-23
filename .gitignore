@@ -5,3 +5,5 @@ rainbow_gen
 *.zip
 .gitCOMMIT_EDITMSG
 *.db
+*.pyc
+*.py

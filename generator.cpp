@@ -21,6 +21,7 @@ using namespace std;
 
 #include "generator.h"
 #include <boost/unordered_map.hpp>
+#include <getopt.h>
 
 unsigned char* create_chain(unsigned char* val, size_t size){
     unsigned char* sha;
@@ -83,7 +84,7 @@ void generate(struct run_params* params){
         temp = ep;
         delete[] temp;
         if(i%1000 == 0){
-            cout<<"\r"<<(double)(i/(double)params->nb_entries)*100.0<<"%";
+            cout<<"\rInfo: Generating table ("<<(double)(i/(double)params->nb_entries)*100.0<<"%)";
         }
         ++i;
         ++j;
@@ -92,16 +93,47 @@ void generate(struct run_params* params){
     fclose(tf);
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    int c;
+    static struct option long_options[] =
+    {
+        {"chainlength", required_argument, NULL, 'c'},
+        {"output", required_argument, NULL, 'o'},
+        {"entries", required_argument, NULL, 'n'},
+        {"start", required_argument, NULL, 's'},
+        {NULL, 0, NULL, 0}
+    };
+    char out[] = "rainbow.db";
+    int option_index = 0;
+
     struct run_params sp;
+    sp.chain_length = 1000;
+    sp.init = 2342342;
+    sp.nb_entries = 1250000;
+    sp.path = out;
+    
+    while ((c = getopt_long (argc, argv, "c:o:n:s:", long_options, &option_index)) != -1){
+        switch (c)
+        {
+            case 'c':
+                sp.chain_length = strtol((char*)optarg, NULL, 10);
+                break;
+            case 'o':
+                sp.path = ((char*)optarg);
+                break;
+            case 'n':
+                sp.nb_entries = strtol((char*)optarg, NULL, 10);
+                break;
+            case 's': 
+                sp.init = strtol((char*)optarg, NULL, 10);
+                break;
+        }
+    }
+
+    cout<<"Info : Generating table " << sp.path << " of "<< sp.nb_entries <<" entries"<<endl;
+    cout<<"Info : Chain length is "<<sp.chain_length<<endl;
     generate(&sp);
-    cout << endl;
-    cout << "-------------------" <<endl;
-    cout << "Generation finished " <<endl;
-    cout << "-------------------"<<endl;
-    cout << endl;
-    //Write last EP
     return 0;
 }
 

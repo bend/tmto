@@ -63,7 +63,7 @@ void* password_preload(void* args);
 
 std::vector<std::string> read_pass(const char* path);
 
-void load_chunck(std::string s, unsigned char* p, unsigned int i);
+void load_chunk(std::string s, unsigned char* p, unsigned int i);
 
 unsigned char* to_char(int input);
 

@@ -55,7 +55,7 @@ void print_int(unsigned char* buf, int s){
     printf("\n");
 }
 
-int isOddParity(unsigned char myChar) {
+int is_odd_parity(unsigned char myChar) {
     myChar ^= myChar >> 4;
     myChar &= 0xf;
     return (0x6996 >> myChar) & 1;
@@ -94,7 +94,7 @@ unsigned char* reduce(unsigned char* hash, int i){
     }   
     
     //Inversion de tout les bits
-    int parity = (isOddParity(reduce[0]) + isOddParity(reduce[1]) + isOddParity(reduce[2]) + isOddParity(reduce[3])) %2;
+    int parity = (is_odd_parity(reduce[0]) + is_odd_parity(reduce[1]) + is_odd_parity(reduce[2]) + is_odd_parity(reduce[3])) %2;
     if(parity == 1){
         reduce[0] ^= (unsigned int) 255;
         reduce[1] ^= (unsigned int) 255;
@@ -127,7 +127,7 @@ unsigned char* reduce(unsigned char* ep, int i){
     else
         newBuf[3] =((ep[(mod4)*4+3] + i) % 255);
 
-    int parity = (isOddParity(newBuf[0]) + isOddParity(newBuf[1]) + isOddParity(newBuf[2]) + isOddParity(newBuf[3]) ) % 2;
+    int parity = (is_odd_parity(newBuf[0]) + is_odd_parity(newBuf[1]) + is_odd_parity(newBuf[2]) + is_odd_parity(newBuf[3]) ) % 2;
     if( parity == 1){
         newBuf[0] ^= (unsigned int) 255;
         newBuf[1] ^= (unsigned int) 255;
@@ -159,7 +159,7 @@ unsigned char* reduce(unsigned char* ep, int i){
     else
         newBuf[3] =((ep[3] - i) % 255);    
 
-    int parity = (isOddParity(newBuf[0]) + isOddParity(newBuf[1]) + isOddParity(newBuf[2]) + isOddParity(newBuf[3]) ) % 2;
+    int parity = (is_odd_parity(newBuf[0]) + is_odd_parity(newBuf[1]) + is_odd_parity(newBuf[2]) + is_odd_parity(newBuf[3]) ) % 2;
     if( parity == 1){
         int in = i % 4;
         if (in == 0)

@@ -24,9 +24,9 @@ using namespace std;
 
 using namespace boost;
 
-void load_chunck(string s, unsigned char* p, unsigned int i){
-    int num = (int) strtoul(s.c_str(), NULL, 16);
-    unsigned char* d = to_char(num);
+void load_chunk(string str, unsigned char* p, unsigned int i){
+    int toi= (int) strtoul(str.c_str(), NULL, 16);
+    unsigned char* d = to_char(toi);
     unsigned int z = 0;
     for(unsigned int k=i ; k < i+4; ++k, ++z){
         p[k] = d[z];
@@ -35,19 +35,19 @@ void load_chunck(string s, unsigned char* p, unsigned int i){
 }
 
 vector<string> read_pass(const char* path, int nb_pass) {
-    fstream fin;
+    fstream stream;
     vector<string> pass;
-    fin.open(path, ios::in);
-    string word;
-    if (fin.is_open()) {
+    stream.open(path, ios::in);
+    string chunk;
+    if (stream.is_open()) {
         int i=0;
         while(i< nb_pass){
-            getline(fin, word, '\n');
-            pass.push_back(word);
+            getline(stream, chunk, '\n');
+            pass.push_back(chunk);
             ++i;
         }
     }
-    fin.close();
+    stream.close();
     return pass;
 }
 
@@ -62,19 +62,19 @@ void* password_preload(void* args){
     while(i < arg->nb_pass){
         unsigned char* tPass = new unsigned char[arg->nb_pass]();
         string s = pass[i].substr(0, 8);
-        load_chunck(s,tPass, 0);
+        load_chunk(s,tPass, 0);
 
         s = pass[i].substr(8, 8);
-        load_chunck(s,tPass, 4);
+        load_chunk(s,tPass, 4);
 
         s = pass[i].substr(16, 8);
-        load_chunck(s,tPass, 8);
+        load_chunk(s,tPass, 8);
 
         s = pass[i].substr(24, 8);
-        load_chunck(s,tPass, 12);
+        load_chunk(s,tPass, 12);
 
         s = pass[i].substr(32, 8);
-        load_chunck(s,tPass, 16);
+        load_chunk(s,tPass, 16);
 
         arg->pass.push_back(tPass);
         ++i;
@@ -94,7 +94,6 @@ void* table_preload(void* args) {
             sp[k] = fgetc(f);
         for(int k = 0; k<4; ++k)
             ep[k] = fgetc(f);
-        //save the first value
         string s_sp((const char*)(sp), 4);
         string s_ep((const char*)(ep), 4);
         (*arg->map)[s_ep] = s_sp;
@@ -109,8 +108,6 @@ void* table_preload(void* args) {
 
 void* search(void* args){
     struct search_params *arg = (struct search_params*)args;
-    int len = arg->chain_length;
-    unordered_map<string, string> *map = arg->map;
     unsigned char* pass;
     /*  Get Next pass */
     while(1){
@@ -122,26 +119,27 @@ void* search(void* args){
             pthread_mutex_unlock(&arg->lock);
             return NULL;
         }
-        for (int index = 1; index < len + 1; ++index) {
+        unsigned int index = 1;
+        while(index < arg->chain_length + 1){
             pthread_mutex_unlock(&arg->lock);
-            int count = 1;
-            unsigned char* red = reduce(pass, len - index );
+            unsigned int count = 1;
+            unsigned char* red = reduce(pass, arg->chain_length - index );
             while(count < index) {
                 unsigned char* sha = sha1p4(red);
                 delete[] red;
-                red = reduce(sha, len - index + count);
+                red = reduce(sha, arg->chain_length - index + count);
                 delete[] sha;
                 ++count;
             }
             string s_red((const char*)(red), 4);
-            if (map->count(s_red)){
-                //Launch the search with the SP
-                string sp = (*map)[s_red];
+            if (arg->map->count(s_red)){
+                string sp = (*arg->map)[s_red];
                 unsigned char* char_sp = (unsigned char*) sp.c_str();
                 unsigned char* f = 0;
-                unsigned char* spp = (unsigned char*)malloc(4);
+                unsigned char* spp = new unsigned char[4]();
                 memcpy(spp, char_sp, 4);
-                for(int index = 0; index < len; ++index) {
+                unsigned int ind =0;
+                while(ind<arg->chain_length){
                     unsigned char* sha = sha1p4(spp);
                     if(strncmp((const char*)sha, (const char*)pass, 20) == 0 ){
                         delete[] sha;
@@ -150,9 +148,10 @@ void* search(void* args){
                     }
                     else {
                         delete[] spp;
-                        spp = reduce(sha, index);
+                        spp = reduce(sha, ind);
                     }
                     delete[] sha;
+                    ++ind;
                 }
                 if(f) {
                     pthread_mutex_lock(&arg->plock);
@@ -164,6 +163,7 @@ void* search(void* args){
                     break;
                 }
             }    
+            ++index;
         }
     }
     return NULL;
@@ -182,11 +182,11 @@ void fprint(unsigned char* hash, unsigned char* pass, FILE* f){
     int i;
     unsigned char* inv = invert_result(pass);
     for (i = 0; i < 20; i++) {
-        fprintf(f, "%02x ", hash[i]);
+        fprintf(f, "%02x", hash[i]);
     }
     fprintf(f, " | ");
     for (i = 0; i < 4; i++) {
-        fprintf(f, "%02x ", inv[i]);
+        fprintf(f, "%02x", inv[i]);
     }
     fprintf(f,"\n");
     fflush(f);

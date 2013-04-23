@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  tester.h
+ *       Filename:  rainbow_crack.h
  *
  *    Description:  
  *
@@ -14,8 +14,8 @@
  *
  * =====================================================================================
  */
-#ifndef __TESTER_H__
-#define __TESTER_H__
+#ifndef __CRACK_H__
+#define __CRACK_H__
 
 #include "utils.h"
 

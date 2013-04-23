@@ -1,9 +1,9 @@
 /*
  * =====================================================================================
  *
- *       Filename:  generator.cpp
+ *       Filename:  rainbow_gen.cpp
  *
- *    Description:  a
+ *    Description:  
  *    
  *
  *        Version:  1.0
@@ -17,11 +17,12 @@
  */
 
 
-using namespace std;
 
-#include "generator.h"
+#include "rainbow_gen.h"
 #include <boost/unordered_map.hpp>
 #include <getopt.h>
+
+using namespace std;
 
 unsigned char* create_chain(unsigned char* val, size_t size){
     unsigned char* sha;
@@ -39,16 +40,13 @@ unsigned char* create_chain(unsigned char* val, size_t size){
 }
 
 void fwrite(FILE* f, unsigned char* c){
-    fputc(c[0], f);
-    fputc(c[1], f);
-    fputc(c[2], f);
-    fputc(c[3], f);
+    for(int i = 0; i<4; ++i)
+        fputc(c[i], f);
 }
 
 unsigned char* get_sp(int iteration){
     unsigned char* startPoint = new unsigned char[4]();
     int startPointInt =  55*iteration;
-    
     startPoint[3] = ( startPointInt & (0xFF));
     startPoint[2] = ((startPointInt >> 8) & 0xFF);
     startPoint[1] = ((startPointInt >> 16) & 0xFF);

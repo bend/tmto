@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  generator.h
+ *       Filename:  rainbow_gen.h
  *
  *    Description:  
  *
@@ -15,8 +15,8 @@
  *
  * =====================================================================================
  */
-#ifndef __GENERATOR_HH__
-#define __GENERATOR_HH__
+#ifndef __GEN_H__
+#define __GEN_H__
 
 #include "utils.h"
 #include <stdio.h>

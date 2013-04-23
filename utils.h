@@ -15,6 +15,9 @@
  * =====================================================================================
  */
 
+#ifndef __UTILS_H__
+#define __UTILS_H__
+
 #include <openssl/sha.h>
 
 unsigned char* sha1p4(unsigned char* input);
@@ -28,3 +31,5 @@ int isOddParity(unsigned char myChar);
 unsigned char* reduce(unsigned char* ep, int i);
 
 unsigned char* to_char(int input);
+
+#endif

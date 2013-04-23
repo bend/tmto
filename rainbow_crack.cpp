@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  tester.cpp
+ *       Filename:  rainbow_crack.cpp
  *
  *    Description:  
  *
@@ -20,7 +20,7 @@
 #include <sstream>
 #include <fstream>
 #include <getopt.h>
-#include "tester.h"
+#include "rainbow_crack.h"
 using namespace std;
 
 using namespace boost;

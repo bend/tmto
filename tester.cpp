@@ -19,6 +19,7 @@
 #include <string.h>
 #include <sstream>
 #include <fstream>
+#include <getopt.h>
 #include "tester.h"
 using namespace std;
 
@@ -34,17 +35,19 @@ void load_chunk(string str, unsigned char* p, unsigned int i){
     delete[] d;
 }
 
-vector<string> read_pass(const char* path, int nb_pass) {
+vector<string> read_pass(const char* path) {
     fstream stream;
     vector<string> pass;
     stream.open(path, ios::in);
     string chunk;
     if (stream.is_open()) {
         int i=0;
-        while(i< nb_pass){
+        while(stream.good()){
             getline(stream, chunk, '\n');
-            pass.push_back(chunk);
-            ++i;
+            if(chunk.size()  != 0) {
+                pass.push_back(chunk);
+                ++i;
+            }
         }
     }
     stream.close();
@@ -53,14 +56,14 @@ vector<string> read_pass(const char* path, int nb_pass) {
 
 void* password_preload(void* args){
     struct load_pass_params *arg = (struct load_pass_params*)args;
-    vector<string> pass = read_pass(arg->path, arg->nb_pass);
-    if((int)pass.size() != (int)arg->nb_pass) {
-        perror("Read pass failed");
+    vector<string> pass = read_pass(arg->path);
+    if((int)pass.size() == 0) {
+        perror("Error : Read pass failed");
         exit(-1);
     }
-    int i = 0;
-    while(i < arg->nb_pass){
-        unsigned char* tPass = new unsigned char[arg->nb_pass]();
+    size_t i = 0;
+    while(i < pass.size()){
+        unsigned char* tPass = new unsigned char[pass.size()]();
         string s = pass[i].substr(0, 8);
         load_chunk(s,tPass, 0);
 
@@ -79,7 +82,7 @@ void* password_preload(void* args){
         arg->pass.push_back(tPass);
         ++i;
     }
-    cout<<"Info : Finished pass load"<<endl;
+    cout<<"Info : Finished pass load ("<<i<<" pass)"<<endl;
     return NULL;
 }
 
@@ -89,11 +92,16 @@ void* table_preload(void* args) {
     unsigned char* ep = new unsigned char[4]();
     unsigned char* sp = new unsigned char[4]();
     int i = 0;
-    while(i < arg->nb_entries) {
-        for(int k = 0; k<4; ++k)
-            sp[k] = fgetc(f);
-        for(int k = 0; k<4; ++k)
-            ep[k] = fgetc(f);
+    int car = fgetc(f);
+    while(car != EOF) {
+        for(int k = 0; k<4; ++k){
+            sp[k] = car;
+            car = fgetc(f);
+        }
+        for(int k = 0; k<4; ++k){
+            ep[k] = car;
+            car = fgetc(f);
+        }
         string s_sp((const char*)(sp), 4);
         string s_ep((const char*)(ep), 4);
         (*arg->map)[s_ep] = s_sp;
@@ -102,7 +110,7 @@ void* table_preload(void* args) {
     fclose(f);
     delete[] ep;
     delete[] sp;
-    cout<<"Info : Finished table load"<<endl;
+    cout<<"Info : Finished table load ("<<i<<" entries)"<<endl;
     return NULL;
 }
 
@@ -155,7 +163,7 @@ void* search(void* args){
                 }
                 if(f) {
                     pthread_mutex_lock(&arg->plock);
-                    cout<<"\rInfo : Password found ("<<++arg->nb_found<<"/"<<arg->nb_pass<<")";
+                    cout<<"\rInfo : Password found ("<<++arg->nb_found<<"/"<<arg->pass->size()<<")";
                     fflush(stdout);
                     fprint(pass,f, arg->output);
                     pthread_mutex_unlock(&arg->plock);
@@ -195,6 +203,7 @@ void fprint(unsigned char* hash, unsigned char* pass, FILE* f){
 
 void thread_search(struct search_params *sp, unsigned int nb_threads){
     
+    cout<<"Info : Starting search with up to "<<nb_threads<<" threads "<<endl;
     pthread_t threads[nb_threads];
 
     for(unsigned int i = 0; i< nb_threads; ++i){
@@ -208,17 +217,16 @@ void thread_search(struct search_params *sp, unsigned int nb_threads){
 }
 
 void start(struct run_params* params){
+    
     /* Load table args  */
     unordered_map<string,string> *map = new unordered_map<string, string>();
     struct load_table_params tp;
     tp.map = map;
     tp.path = params->table_path;
-    tp.nb_entries = params->nb_entries;
 
     /*  Load pass args */
     struct load_pass_params pp;
     pp.path = params->pass_path;
-    pp.nb_pass = params->nb_pass;
     
     /*  Load table and args in threads */
     pthread_t load_pass_thread;
@@ -237,7 +245,6 @@ void start(struct run_params* params){
     pthread_mutex_init(&sp.plock, NULL);
     sp.pass = &pp.pass;
     sp.next_pass_index = 0;
-    sp.nb_pass = params->nb_pass;
     sp.nb_found = 0;
     FILE* f = fopen(params->output_path, "w");
     if(!f){
@@ -250,19 +257,52 @@ void start(struct run_params* params){
     fclose(f);
 }
 
-int main(char* argc, char** argv)
+int main(int argc, char** argv)
 {
-    //char path[20] = "table10000.dat";
-    //char path2[20] = "pass.txt";
-    //
+    int c;
+    static struct option long_options[] =
+    {
+        {"table", required_argument, NULL, 't'},
+        {"chainlength", required_argument, NULL, 'c'},
+        {"pass", required_argument, NULL, 'p'},
+        {"threads", required_argument, NULL, 's'},
+        {"out", required_argument, NULL, 'o'},
+        {NULL, 0, NULL, 0}
+    };
+    char found[] = "found.txt";
+    int option_index = 0;
     struct run_params rp;
-    rp.chain_length = 5000;
-    rp.nb_entries = 1250000;
-    rp.nb_pass = 20;
-    rp.nb_threads = 4;
-    rp.table_path = "table5000.dat";
-    rp.pass_path =  "pass.txt";
-    rp.output_path = "found.txt";
+    rp.chain_length = 0;
+    rp.nb_threads = 1;
+    rp.output_path = found;
+    rp.pass_path = NULL;
+    rp.table_path = NULL;
+    while ((c = getopt_long (argc, argv, "t:c:p:s:o:", long_options, &option_index)) != -1){
+        switch (c)
+        {
+            case 't':
+                rp.table_path = ((char*)optarg);
+                break;
+            case 'c':
+                rp.chain_length = strtol((char*)optarg, NULL, 10);
+                break;
+            case 'p':
+                rp.pass_path = ((char*)optarg);
+                break;
+            case 's':
+                rp.nb_threads = strtol((char*)optarg, NULL, 10);
+                break;
+            case 'o':
+                rp.output_path = ((char*)optarg);
+                break;
+
+        }
+    }
+
+    if(rp.chain_length == 0 || rp.pass_path == NULL || rp.table_path == NULL){
+        cout<<"Error : Missing parameter(s)"<<endl;
+        exit(-1);
+    }
 
     start(&rp);
 

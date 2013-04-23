@@ -26,18 +26,15 @@
 struct load_pass_params {
     std::vector<unsigned char*> pass;
     char* path;
-    int nb_pass;
 };
 
 struct load_table_params {
     char* path;
-    int nb_entries;
     boost::unordered_map<std::string, std::string> *map;
 };
 
 struct search_params {
     unsigned int chain_length;
-    unsigned int nb_pass;
     unsigned int nb_found;
     boost::unordered_map<std::string, std::string> *map;
     int next_pass_index;
@@ -49,9 +46,7 @@ struct search_params {
 
 struct run_params {
     char* pass_path;
-    unsigned int nb_pass;
     char* table_path;
-    unsigned int nb_entries;
     unsigned int chain_length;
     unsigned int nb_threads;
     char* output_path;

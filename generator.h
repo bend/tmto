@@ -28,12 +28,16 @@ struct run_params{
     char* path;
     int nb_entries;
     int chain_length;
+    int init;
 };
+
+unsigned char* get_sp(int iteration);
 
 unsigned char* create_chain(unsigned char* val, size_t size);
 
 void fwrite(FILE* file, unsigned char* c);
 
-int generate(struct run_params* params); 
+void generate(struct run_params* params); 
+
 
 #endif

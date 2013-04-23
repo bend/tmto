@@ -44,7 +44,7 @@ void fwrite(FILE* f, unsigned char* c){
     fputc(c[3], f);
 }
 
-unsigned char* sp(int iteration){
+unsigned char* get_sp(int iteration){
     unsigned char* startPoint = new unsigned char[4]();
     int startPointInt =  55*iteration;
     
@@ -56,58 +56,54 @@ unsigned char* sp(int iteration){
        
 }
 
-int generate(
+void generate(struct run_params* params){
+    unsigned char* val;
+    unsigned char* sp = new unsigned char[4]();
+    unsigned char* ep = new unsigned char[4]();
+    unsigned char* temp;
+    
+    val = to_char(params->init);
+    memcpy(sp, val, 4);
+    FILE* tf = fopen(params->path, "w");
+    boost::unordered_map<string,string> map;
+
+    int i = 0;
+    int j = 0;
+    while(i<params->nb_entries) {
+         ep = create_chain(sp, params->chain_length);
+         string s_ep((const char*)(ep), 4); 
+         if (map.count(s_ep)){
+            --i;
+        } else {
+            fwrite(tf, sp);   
+            fwrite(tf, ep);
+            map[s_ep] = "";
+        }
+        sp = get_sp(j); 
+        temp = ep;
+        delete[] temp;
+        if(i%1000 == 0){
+            cout<<"\r"<<(double)(i/(double)params->nb_entries)*100.0<<"%";
+        }
+        ++i;
+        ++j;
+    
+    }
+    fclose(tf);
+}
 
 int main()
 {
-    unsigned char* value;
-    unsigned char* startPoint = new unsigned char[4]();
-    unsigned char* endPoint = new unsigned char[4]();
-    unsigned char* oldep;
-    int startValue = 0;
-    
-    value = to_char(startValue);
-    memcpy(startPoint, value, 4);
-
-    int numberEntries = 1250000;
-    int chainLength = 2;
-
-    cout << "== Starting Generation ==" << endl;
-    cout << "[Entries : " << numberEntries << "]" << endl;
-    cout << "[Chain Length : " << chainLength << "]" << endl;
-    FILE* tf = fopen("tabletemp.dat", "w");
-    boost::unordered_map<string,string> map;
-
-    int countDoublon = 0;
-    
-    //Creation de la table
-    for(int i = 0,j=0;i<numberEntries;i++,j++){
-         endPoint = create_chain(startPoint, chainLength);
-         string s_ep((const char*)(endPoint), 4); 
-         if (map.count(s_ep)){
-            countDoublon++;
-            --i;
-        } else {
-             fwrite(tf, startPoint);   
-             fwrite(tf, endPoint);
-             map[s_ep] = "";
-        }
-        startPoint = sp(j); 
-        oldep = endPoint;
-        delete[] oldep;
-        if(i%1000 == 0){
-            cout<<"\r"<<(double)(i/(double)numberEntries)*100.0<<"%";
-        }
-    }
+    struct run_params sp;
+    generate(&sp);
     cout << endl;
     cout << "-------------------" <<endl;
     cout << "Generation finished " <<endl;
     cout << "-------------------"<<endl;
     cout << endl;
-    cout << "== Generation Statistics == " << endl;
-    cout << "Copies during generation : " << countDoublon <<endl;
     //Write last EP
-    fclose(tf);
     return 0;
 }
+
+
 

@@ -24,8 +24,16 @@
 #include <string.h>
 #include <iostream>
 
+struct run_params{
+    char* path;
+    int nb_entries;
+    int chain_length;
+};
+
 unsigned char* create_chain(unsigned char* val, size_t size);
 
 void fwrite(FILE* file, unsigned char* c);
+
+int generate(struct run_params* params); 
 
 #endif

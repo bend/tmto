@@ -56,6 +56,8 @@ unsigned char* sp(int iteration){
        
 }
 
+int generate(
+
 int main()
 {
     unsigned char* value;

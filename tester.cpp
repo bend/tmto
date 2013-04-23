@@ -256,11 +256,11 @@ int main(char* argc, char** argv)
     //char path2[20] = "pass.txt";
     //
     struct run_params rp;
-    rp.chain_length = 2000;
-    rp.nb_entries = 2000000;
+    rp.chain_length = 5000;
+    rp.nb_entries = 1250000;
     rp.nb_pass = 20;
     rp.nb_threads = 4;
-    rp.table_path = "table2.dat";
+    rp.table_path = "table5000.dat";
     rp.pass_path =  "pass.txt";
     rp.output_path = "found.txt";
 

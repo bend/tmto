@@ -44,7 +44,7 @@ void fwrite(FILE* f, unsigned char* c){
     fputc(c[3], f);
 }
 
-unsigned char* getStartPoint(int iteration){
+unsigned char* sp(int iteration){
     unsigned char* startPoint = new unsigned char[4]();
     int startPointInt =  55*iteration;
     
@@ -90,7 +90,7 @@ int main()
              fwrite(tf, endPoint);
              map[s_ep] = "";
         }
-        startPoint = getStartPoint(j); 
+        startPoint = sp(j); 
         oldep = endPoint;
         delete[] oldep;
         if(i%1000 == 0){
